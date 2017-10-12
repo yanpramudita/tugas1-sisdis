@@ -7,4 +7,4 @@ const RequestSchema = new Schema({
 	nilai_saldo: Number
 });
 
-module.exports = mongoose.model('Request', RequestSchema);
+module.exports = mongoose.model('User', RequestSchema);
