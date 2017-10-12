@@ -74,6 +74,7 @@ if(!process.env.SERVICE_REPOSITORY_URI) {
 router.post('/getSaldo', function(req, res) {
   getQuorum().then((quorum) => {
     if (quorum < 4) {
+      console.error(util.format('quorum tidak memenuhi 50%, hanya %s/8', (quorum+1)));
       return Bluebird.reject(-2);
     }
     return Bluebird.resolve();
