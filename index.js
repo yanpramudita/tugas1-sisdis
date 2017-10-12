@@ -168,7 +168,7 @@ function getAllServices() {
 function getQuorum() {
   return getAllServices()
     .then((services) => Bluebird.map(
-      _.take(_.shuffle(services),7),
+      _.take(services,7),
       pingOtherService
     ))
     .spread((a,b,c,d,e,f,g) => Bluebird.resolve(a+b+c+d+e+f+g))
