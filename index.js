@@ -361,7 +361,6 @@ function transferKeKantorCabang(user_id, value, ip) {
         return resolve(1);
       })
       .catch(errorStatus => {
-        console.log(errorStatus);
         errorStatus = _.isNumber(errorStatus) ? errorStatus : -99;
         reject(errorStatus);
       });
@@ -369,7 +368,7 @@ function transferKeKantorCabang(user_id, value, ip) {
 }
 
 function transferToOtherService(user_id, value, ip) {
-  return new Bluebird((resolve) => {
+  return new Bluebird((resolve, reject) => {
     request({
       url: util.format('http://%s/ewallet/transfer', ip),
       method: 'POST',
@@ -381,7 +380,7 @@ function transferToOtherService(user_id, value, ip) {
         if(error || response.statusCode != 200 || _.isUndefined(body)) {
           return reject(-99);
         }
-        if(_.parseInt(body.status_transfer) == 1) {
+        if(_.parseInt(body.status_transfer) === 1) {
           return resolve(1);
         }
         return reject(body.status_transfer);
