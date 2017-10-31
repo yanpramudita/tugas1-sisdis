@@ -3,6 +3,7 @@ const bodyParser = require('body-parser');
 const util = require('util');
 const moment = require('moment');
 const http = require('http');
+const request = require('request');
 const mongoose = require('mongoose');
 const _ = require('lodash');
 const fs = require('fs');
@@ -203,21 +204,15 @@ function getOwnTotalSaldo(user_id) {
 
 function getSaldoFromOtherService(service, user_id) {
   return new Bluebird((resolve, reject) => {
-    const req = http.request({
-      host: service.ip,
-      path: '/ewallet/getSaldo' ,
+    request({
+      url: util.format('http://%s/ewallet/getSaldo', service.ip),
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      json: true
-    }, (response)=> {
-      var body = '';
-      response.on('data', function(d) {
-        body += d;
-      }).on('end', function() {
+      json: {user_id: user_id},
+    }, function (error, response, body) {
+        if(error || response.statusCode != 200) {
+          return reject(-3);
+        }
         try {
-          body = JSON.parse(body);
           if(!_.isInteger(_.parseInt(body.nilai_saldo))) {
             return reject(-99);
           }
@@ -228,45 +223,21 @@ function getSaldoFromOtherService(service, user_id) {
         } catch (err) {
           return reject(-3);
         }
-      }).on('error', function(err) {
-        return reject(-3);
-      });
     });
-
-    req.on('socket', function (socket) {
-        socket.setTimeout(10000);
-        socket.on('timeout', function() {
-            req.abort();
-        });
-    });
-
-    req.on('error', function(err) {
-      console.error(err);
-        return reject(-3);
-    });
-
-    req.write(JSON.stringify({user_id: user_id}));
-    req.end();
   });
 }
 
 function getOtherTotalSaldo(service) {
   return new Bluebird((resolve, reject) => {
-    const req = http.request({
-      host: service.ip,
-      path: '/ewallet/getTotalSaldo' ,
+    request({
+      url: util.format('http://%s/ewallet/getTotalSaldo', service.ip),
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      json: true
-    }, (response)=> {
-      var body = '';
-      response.on('data', function(d) {
-        body += d;
-      }).on('end', function() {
+      json: {user_id: service.npm},
+    }, function (error, response, body) {
+        if(error || response.statusCode != 200) {
+          return reject(-3);
+        }
         try {
-          body = JSON.parse(body);
           if(!_.isInteger(_.parseInt(body.nilai_saldo))) {
             return reject(-99);
           }
@@ -277,25 +248,7 @@ function getOtherTotalSaldo(service) {
         } catch (err) {
           return reject(-3);
         }
-      }).on('error', function(err) {
-        return reject(-3);
-      });
     });
-
-    req.on('socket', function (socket) {
-        socket.setTimeout(10000);
-        socket.on('timeout', function() {
-            req.abort();
-        });
-    });
-
-    req.on('error', function(err) {
-      console.error(err);
-        return reject(-3);
-    });
-
-    req.write(JSON.stringify({user_id: service.npm}));
-    req.end();
   });
 }
 
