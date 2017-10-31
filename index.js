@@ -1,7 +1,6 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const util = require('util');
-const moment = require('moment');
 const http = require('http');
 const request = require('request');
 const mongoose = require('mongoose');
@@ -125,6 +124,22 @@ router.post('/transfer', function(req, res) {
     return Bluebird.resolve();
   })
   .then(() => transfer(req.body.user_id, req.body.nilai))
+  .then((status_transfer) => res.json({status_transfer: status_transfer}))
+  .catch(errorStatus => {
+    errorStatus = _.isNumber(errorStatus) ? errorStatus : -99;
+    sendError(req, res, {status_transfer: errorStatus});
+  });
+});
+
+router.post('/transferKeKantorCabang', function(req, res) {
+  getQuorum().then((quorum) => {
+    if (quorum < 5) {
+      console.error(util.format('quorum tidak memenuhi 50%, hanya %s/8', (quorum)));
+      return Bluebird.reject(-2);
+    }
+    return Bluebird.resolve();
+  })
+  .then(() => transferKeKantorCabang(req.body.user_id, req.body.nilai, req.body.ip))
   .then((status_transfer) => res.json({status_transfer: status_transfer}))
   .catch(errorStatus => {
     errorStatus = _.isNumber(errorStatus) ? errorStatus : -99;
@@ -311,6 +326,66 @@ function transfer(user_id, value) {
       .catch(err => {
         return reject(-4);
       });
+  });
+}
+
+function transferKeKantorCabang(user_id, value, ip) {
+  if(_.isUndefined(user_id) || _.isUndefined(ip)) {
+    return Bluebird.reject(-99);
+  }
+  if(_.isUndefined(value) || !_.isInteger(_.parseInt(value))
+    || _.parseInt(value) < 0 || _.parseInt(value) > 1000000000
+  ) {
+    return Bluebird.reject(-5);
+  }
+  if(mongoose.connection.readyState != 1){
+    return Bluebird.reject(-4);
+  }
+  return new Bluebird((resolve, reject) => {
+    User.findOne({user_id: user_id})
+      .then((user) => {
+        if(_.isUndefined(user) || _.isNull(user)) {
+          return reject(-1);
+        }
+        currentUser = user;
+        if(user.nilai_saldo < value) {
+          return reject(-4);
+        }
+        return Bluebird.resolve();
+      })
+      .then(() => transferToOtherService(user_id,value,ip))
+      .then(() =>   User.findOne({user_id: user_id}))
+      .then((user) => {
+        user.nilai_saldo = user.nilai_saldo - value;
+        user.save();
+        return resolve(1);
+      })
+      .catch(errorStatus => {
+        console.log(errorStatus);
+        errorStatus = _.isNumber(errorStatus) ? errorStatus : -99;
+        reject(errorStatus);
+      });
+  });
+}
+
+function transferToOtherService(user_id, value, ip) {
+  return new Bluebird((resolve) => {
+    request({
+      url: util.format('http://%s/ewallet/transfer', ip),
+      method: 'POST',
+      json: {
+        user_id: user_id,
+        nilai: value
+      },
+    }, function (error, response, body) {
+        if(error || response.statusCode != 200 || _.isUndefined(body)) {
+          return reject(-99);
+        }
+        if(_.parseInt(body.status_transfer) == 1) {
+          return resolve(1);
+        }
+        return reject(body.status_transfer);
+    });
   });
 }
 
