@@ -84,16 +84,6 @@ if(!process.env.SERVICE_REPOSITORY_URI) {
   });
 }
 
-router.get('/quorum', function(req, res) {
-  getQuorum().then((quorum) => {
-    res.json({quorum: quorum})
-  })
-  .catch(errorStatus => {
-    errorStatus = _.isNumber(errorStatus) ? errorStatus : -99;
-    sendError(req, res, {nilai_saldo: errorStatus});
-  });
-});
-
 router.post('/getSaldo', function(req, res) {
   getQuorum().then((quorum) => {
     if (quorum < 5) {
