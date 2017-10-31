@@ -209,20 +209,17 @@ function getSaldoFromOtherService(service, user_id) {
       method: 'POST',
       json: {user_id: user_id},
     }, function (error, response, body) {
-        if(error || response.statusCode != 200) {
+        if(error || response.statusCode != 200 || _.isUndefined(body)) {
           return reject(-3);
         }
-        try {
-          if(!_.isInteger(_.parseInt(body.nilai_saldo))) {
-            return reject(-99);
-          }
-          if(_.parseInt(body.nilai_saldo) >= 0){
-            return resolve(_.parseInt(body.nilai_saldo));
-          }
-          return reject(_.parseInt(body.nilai_saldo));
-        } catch (err) {
-          return reject(-3);
+        if(!_.isInteger(_.parseInt(body.nilai_saldo))) {
+          return reject(-99);
         }
+        body.nilai_saldo == -1 ? 0 : body.nilai_saldo;
+        if(_.parseInt(body.nilai_saldo) >= 0){
+          return resolve(_.parseInt(body.nilai_saldo));
+        }
+        return reject(-3);
     });
   });
 }
@@ -363,46 +360,17 @@ function getQuorum() {
 
 function pingOtherService(service) {
   return new Bluebird((resolve) => {
-    const req = http.request({
-      host: service.ip,
-      path: '/ewallet/ping' ,
+    request({
+      url: util.format('http://%s/ewallet/ping', service.ip),
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      json: true
-    }, (response)=> {
-      var body = '';
-      response.on('data', function(d) {
-        body += d;
-      }).on('end', function() {
-        try {
-          body = JSON.parse(body);
-          return resolve(
-            _.parseInt(body.pong) == 1 ? 1 :0
-          );
-        } catch (err) {
+      json: {},
+    }, function (error, response, body) {
+        if(error || response.statusCode != 200 || _.isUndefined(body)) {
           return resolve(0);
         }
-      }).on('error', function(err) {
-        return resolve(0);
-      });
+        body.pong = body.pong == 1 ? 1 : 0;
+        return resolve(body.pong);
     });
-
-    req.on('socket', function (socket) {
-        socket.setTimeout(10000);
-        socket.on('timeout', function() {
-            req.abort();
-        });
-    });
-
-    req.on('error', function(err) {
-      console.error(err);
-        return resolve(0);
-    });
-
-    req.write('{}');
-    req.end();
   });
 }
 
