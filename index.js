@@ -24,7 +24,7 @@ const participants = [
   '1406543725',
   '1406527620', 
   '1406527513',
-  '1406527532',
+  '1406543845',
   '1406543763'
 ]
 
@@ -67,7 +67,7 @@ if(!process.env.SERVICE_REPOSITORY_URI) {
           npm: '1406527513',
         },{
           ip: ip.address(),
-          npm: '1306398983',
+          npm: '1406543845',
         },{
           ip: ip.address(),
           npm: '1406543763',
@@ -209,7 +209,8 @@ function getSaldoFromOtherService(service, user_id) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
-      }
+      },
+      json: true
     }, (response)=> {
       var body = '';
       response.on('data', function(d) {
@@ -257,7 +258,8 @@ function getOtherTotalSaldo(service) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
-      }
+      },
+      json: true
     }, (response)=> {
       var body = '';
       response.on('data', function(d) {
@@ -414,7 +416,8 @@ function pingOtherService(service) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
-      }
+      },
+      json: true
     }, (response)=> {
       var body = '';
       response.on('data', function(d) {
